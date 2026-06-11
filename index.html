@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Allergy Pattern Coach (MVP)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      margin: 0;
+      padding: 16px;
+      background: #f7f7fb;
+      color: #222;
+    }
+    h1 {
+      font-size: 1.4rem;
+      margin-bottom: 8px;
+    }
+    h2 {
+      font-size: 1.1rem;
+      margin-top: 24px;
+      margin-bottom: 8px;
+    }
+    h3 {
+      font-size: 1rem;
+      margin-top: 16px;
+      margin-bottom: 4px;
+    }
+    .card {
+      background: #fff;
+      border-radius: 8px;
+      padding: 12px 14px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      margin-bottom: 16px;
+    }
+    label {
+      display: block;
+      font-size: 0.85rem;
+      margin-top: 8px;
+      margin-bottom: 2px;
+    }
+    input[type="text"],
+    input[type="time"],
+    input[type="date"],
+    select,
+    textarea {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 6px 8px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+      font-size: 0.9rem;
+    }
+    textarea {
+      min-height: 60px;
+      resize: vertical;
+    }
+    .row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .row > div {
+      flex: 1 1 0;
+      min-width: 120px;
+    }
+    .radio-group, .checkbox-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 4px;
+    }
+    .radio-group label,
+    .checkbox-group label {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.85rem;
+      margin-top: 0;
+    }
+    button {
+      margin-top: 10px;
+      padding: 8px 12px;
+      border-radius: 4px;
+      border: none;
+      background: #2563eb;
+      color: #fff;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+    button:disabled {
+      background: #9ca3af;
+      cursor: default;
+    }
+    .entries {
+      font-size: 0.85rem;
+    }
+    .entry {
+      border-bottom: 1px solid #e5e7eb;
+      padding: 6px 0;
+    }
+    .entry:last-child {
+      border-bottom: none;
+    }
+    .entry-title {
+      font-weight: 600;
+    }
+    .small {
+      font-size: 0.8rem;
+      color: #6b7280;
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 999px;
+      background: #eef2ff;
+      color: #3730a3;
+      font-size: 0.7rem;
+      margin-left: 4px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Allergy Pattern Coach (MVP)</h1>
+
+  <div class="card">
+    <div class="row">
+      <div>
+        <label>Profile</label>
+        <div class="radio-group">
+          <label><input type="radio" name="profile" value="adult" checked> Adult with HS</label>
+          <label><input type="radio" name="profile" value="child"> Child with eczema</label>
+        </div>
+      </div>
+      <div>
+        <label for="date">Date</label>
+        <input type="date" id="date">
+      </div>
+    </div>
+  </div>
+
+  <!-- Log Food Section -->
+  <div class="card">
+    <h2>Log food</h2>
+
+    <div class="row">
+      <div>
+        <label for="foodMealType">Meal type</label>
+        <select id="foodMealType">
+          <option>Breakfast</option>
+          <option>Lunch</option>
+          <option>Dinner</option>
+          <option>Snack</option>
+        </select>
+      </div>
+      <div>
+        <label for="foodTime">Time (optional)</label>
+        <input type="time" id="foodTime">
+      </div>
+    </div>
+
+    <label>Food source</label>
+    <div class="radio-group">
+      <label><input type="radio" name="foodSource" value="restaurant" checked> Restaurant</label>
+      <label><input type="radio" name="foodSource" value="supermarket"> Supermarket</label>
+      <label><input type="radio" name="foodSource" value="homemade"> Homemade recipe</label>
+      <label><input type="radio" name="foodSource" value="other"> Other</label>
+    </div>
+
+    <div id="restaurantFields">
+      <div class="row">
+        <div>
+          <label for="restaurantChain">Chain</label>
+          <select id="restaurantChain">
+            <option value="nandos">Nando's</option>
+            <option value="pho">Pho</option>
+            <option value="other">Other chain</option>
+          </select>
+        </div>
+        <div>
+          <label for="restaurantDish">Dish</label>
+          <select id="restaurantDish">
+            <!-- options populated by JS based on chain -->
+          </select>
+        </div>
+      </div>
+      <label for="restaurantNotes">Notes / customisations (optional)</label>
+      <textarea id="restaurantNotes" placeholder="e.g. no cheese, extra sauce"></textarea>
+    </div>
+
+    <div id="supermarketFields" style="display:none;">
+      <div class="row">
+        <div>
+          <label for="retailer">Retailer</label>
+          <select id="retailer">
+            <option value="tesco">Tesco</option>
+            <option value="sainsburys">Sainsbury's</option>
+          </select>
+        </div>
+        <div>
+          <label for="product">Product name or barcode</label>
+          <input type="text" id="product" placeholder="e.g. Tesco Greek yoghurt">
+        </div>
+      </div>
+    </div>
+
+    <div id="homemadeFields" style="display:none;">
+      <label for="recipeName">Recipe name</label>
+      <input type="text" id="recipeName" placeholder="e.g. Lentil tomato pasta">
+      <label for="recipeIngredients">Ingredients (free text)</label>
+      <textarea id="recipeIngredients" placeholder="e.g. pasta (wheat), red lentils, tomatoes, olive oil, garlic"></textarea>
+    </div>
+
+    <div id="otherFields" style="display:none;">
+      <label for="otherFood">Describe food</label>
+      <textarea id="otherFood" placeholder="e.g. toast with peanut butter and banana"></textarea>
+    </div>
+
+    <button id="saveFoodBtn">Save food entry</button>
+  </div>
+
+  <!-- Log Symptoms Section -->
+  <div class="card">
+    <h2>Log symptoms</h2>
+
+    <div class="row">
+      <div>
+        <label for="symptomTime">Time (optional)</label>
+        <input type="time" id="symptomTime">
+      </div>
+    </div>
+
+    <!-- Adult HS fields -->
+    <div id="adultSymptoms">
+      <label for="hsSeverity">HS severity (0–10)</label>
+      <input type="range" id="hsSeverity" min="0" max="10" value="0" oninput="document.getElementById('hsSeverityValue').textContent = this.value">
+      <div class="small">Current: <span id="hsSeverityValue">0</span>/10</div>
+
+      <label>Areas affected</label>
+      <div class="checkbox-group">
+        <label><input type="checkbox" value="Armpits"> Armpits</label>
+        <label><input type="checkbox" value="Under chest/breasts"> Under chest/breasts</label>
+        <label><input type="checkbox" value="Groin"> Groin</label>
+        <label><input type="checkbox" value="Other"> Other</label>
+      </div>
+
+      <label>Symptoms</label>
+      <div class="checkbox-group">
+        <label><input type="checkbox" value="Pain"> Pain</label>
+        <label><input type="checkbox" value="Swelling"> Swelling</label>
+        <label><input type="checkbox" value="Pus/discharge"> Pus / discharge</label>
+        <label><input type="checkbox" value="New lesions"> New lesions</label>
+        <label><input type="checkbox" value="Movement limited"> Movement limited</label>
+      </div>
+    </div>
+
+    <!-- Child eczema fields -->
+    <div id="childSymptoms" style="display:none;">
+      <label for="eczSeverity">Eczema severity (0–10)</label>
+      <input type="range" id="eczSeverity" min="0" max="10" value="0" oninput="document.getElementById('eczSeverityValue').textContent = this.value">
+      <div class="small">Current: <span id="eczSeverityValue">0</span>/10</div>
+
+      <label for="itchSeverity">Itch / scratching (0–10)</label>
+      <input type="range" id="itchSeverity" min="0" max="10" value="0" oninput="document.getElementById('itchSeverityValue').textContent = this.value">
+      <div class="small">Current: <span id="itchSeverityValue">0</span>/10</div>
+
+      <label for="sleepQuality">Sleep last night</label>
+      <select id="sleepQuality">
+        <option>Normal</option>
+        <option>Some disturbance</option>
+        <option>Very disturbed</option>
+      </select>
+
+      <label>Areas affected</label>
+      <div class="checkbox-group">
+        <label><input type="checkbox" value="Arms"> Arms</label>
+        <label><input type="checkbox" value="Legs"> Legs</label>
+        <label><input type="checkbox" value="Face/cheeks"> Face/cheeks</label>
+        <label><input type="checkbox" value="Trunk"> Trunk</label>
+        <label><input type="checkbox" value="Other"> Other</label>
+      </div>
+    </div>
+
+    <label for="symptomNotes">Notes (optional)</label>
+    <textarea id="symptomNotes" placeholder="e.g. new detergent, very stressful day"></textarea>
+
+    <label for="linkedFood">Link symptoms to recent food (optional)</label>
+    <select id="linkedFood">
+      <option value="">No food linked / not sure yet</option>
+      <!-- options populated by JS -->
+    </select>
+    <div class="small">This dropdown is populated from today’s food entries for the selected profile.</div>
+
+    <button id="saveSymptomBtn">Save symptom entry</button>
+  </div>
+
+  <!-- Today's entries -->
+  <div class="card">
+    <h2>Today’s entries</h2>
+    <div class="entries">
+      <h3>Food</h3>
+      <div id="foodEntriesContainer" class="small">
+        No food entries yet.
+      </div>
+      <h3>Symptoms</h3>
+      <div id="symptomEntriesContainer" class="small">
+        No symptom entries yet.
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Simple in-memory storage
+    const foodEntries = [];
+    const symptomEntries = [];
+    let nextId = 1;
+
+    const restaurantDishesByChain = {
+      "nandos": [
+        "Sunset Burger",
+        "Butterfly Chicken with chips",
+        "Portobello Mushroom & Halloumi Pitta"
+      ],
+      "pho": [
+        "Chicken Pho",
+        "Tofu & Veg Pho",
+        "Spicy Beef Pho"
+      ],
+      "other": [
+        "Other dish"
+      ]
+    };
+
+    function getSelectedProfile() {
+      return document.querySelector('input[name="profile"]:checked').value; // 'adult' or 'child'
+    }
+
+    function getSelectedDate() {
+      return document.getElementById('date').value;
+    }
+
+    function initDate() {
+      const dateInput = document.getElementById('date');
+      const today = new Date();
+      const yyyy = today.getFullYear();
+      const mm = String(today.getMonth() + 1).padStart(2, '0');
+      const dd = String(today.getDate()).padStart(2, '0');
+      dateInput.value = `${yyyy}-${mm}-${dd}`;
+    }
+
+    function setUpRestaurantDishes() {
+      const chainSelect = document.getElementById('restaurantChain');
+      const dishSelect = document.getElementById('restaurantDish');
+
+      function updateDishes() {
+        const chain = chainSelect.value;
+        const dishes = restaurantDishesByChain[chain] || [];
+        dishSelect.innerHTML = "";
+        dishes.forEach(dish => {
+          const opt = document.createElement('option');
+          opt.value = dish;
+          opt.textContent = dish;
+          dishSelect.appendChild(opt);
+        });
+      }
+
+      chainSelect.addEventListener('change', updateDishes);
+      updateDishes();
+    }
+
+    function setUpFoodSourceToggle() {
+      const radios = document.querySelectorAll('input[name="foodSource"]');
+      const restaurantFields = document.getElementById('restaurantFields');
+      const supermarketFields = document.getElementById('supermarketFields');
+      const homemadeFields = document.getElementById('homemadeFields');
+      const otherFields = document.getElementById('otherFields');
+
+      function updateVisibility() {
+        const value = document.querySelector('input[name="foodSource"]:checked').value;
+        restaurantFields.style.display = value === 'restaurant' ? 'block' : 'none';
+        supermarketFields.style.display = value === 'supermarket' ? 'block' : 'none';
+        homemadeFields.style.display = value === 'homemade' ? 'block' : 'none';
+        otherFields.style.display = value === 'other' ? 'block' : 'none';
+      }
+
+      radios.forEach(r => r.addEventListener('change', updateVisibility));
+      updateVisibility();
+    }
+
+    function setUpProfileToggle() {
+      const profileRadios = document.querySelectorAll('input[name="profile"]');
+      const adultDiv = document.getElementById('adultSymptoms');
+      const childDiv = document.getElementById('childSymptoms');
+
+      function updateSymptomsView() {
+        const profile = getSelectedProfile();
+        if (profile === 'adult') {
+          adultDiv.style.display = 'block';
+          childDiv.style.display = 'none';
+        } else {
+          adultDiv.style.display = 'none';
+          childDiv.style.display = 'block';
+        }
+        refreshLinkedFoodOptions();
+        renderEntries();
+      }
+
+      profileRadios.forEach(r => r.addEventListener('change', updateSymptomsView));
+      updateSymptomsView();
+    }
+
+    function inferFoodLabel(food) {
+      switch (food.sourceType) {
+        case 'restaurant':
+          return `${food.chainName || ''} ${food.dishName || ''}`.trim();
+        case 'supermarket':
+          return `${food.retailer || ''} ${food.product || ''}`.trim();
+        case 'homemade':
+          return food.recipeName || 'Homemade recipe';
+        case 'other':
+          return food.description || 'Food (other)';
+        default:
+          return 'Food';
+      }
+    }
+
+    function saveFoodEntry() {
+      const profile = getSelectedProfile();
+      const date = getSelectedDate();
+      const mealType = document.getElementById('foodMealType').value;
+      const time = document.getElementById('foodTime').value || '';
+
+      const sourceType = document.querySelector('input[name="foodSource"]:checked').value;
+      let chainName = "", dishName = "", notes = "";
+      let retailer = "", product = "";
+      let recipeName = "", recipeIngredients = "";
+      let description = "";
+
+      if (sourceType === 'restaurant') {
+        chainName = document.getElementById('restaurantChain').value;
+        dishName = document.getElementById('restaurantDish').value;
+        notes = document.getElementById('restaurantNotes').value.trim();
+      } else if (sourceType === 'supermarket') {
+        retailer = document.getElementById('retailer').value;
+        product = document.getElementById('product').value.trim();
+      } else if (sourceType === 'homemade') {
+        recipeName = document.getElementById('recipeName').value.trim();
+        recipeIngredients = document.getElementById('recipeIngredients').value.trim();
+      } else if (sourceType === 'other') {
+        description = document.getElementById('otherFood').value.trim();
+      }
+
+      const food = {
+        id: nextId++,
+        profile,
+        date,
+        time,
+        mealType,
+        sourceType,
+        chainName,
+        dishName,
+        notes,
+        retailer,
+        product,
+        recipeName,
+        recipeIngredients,
+        description
+      };
+      foodEntries.push(food);
+
+      // Clear minimal fields
+      document.getElementById('foodTime').value = '';
+      document.getElementById('restaurantNotes').value = '';
+      document.getElementById('product').value = '';
+      document.getElementById('recipeName').value = '';
+      document.getElementById('recipeIngredients').value = '';
+      document.getElementById('otherFood').value = '';
+
+      renderEntries();
+      refreshLinkedFoodOptions();
+    }
+
+    function saveSymptomEntry() {
+      const profile = getSelectedProfile();
+      const date = getSelectedDate();
+      const time = document.getElementById('symptomTime').value || '';
+
+      let severity = 0;
+      let areas = [];
+      let symptoms = [];
+      let itch = null;
+      let sleep = null;
+
+      if (profile === 'adult') {
+        severity = parseInt(document.getElementById('hsSeverity').value, 10);
+        areas = Array.from(document.querySelectorAll('#adultSymptoms .checkbox-group:nth-of-type(1) input:checked')).map(c => c.value);
+        symptoms = Array.from(document.querySelectorAll('#adultSymptoms .checkbox-group:nth-of-type(2) input:checked')).map(c => c.value);
+      } else {
+        severity = parseInt(document.getElementById('eczSeverity').value, 10);
+        itch = parseInt(document.getElementById('itchSeverity').value, 10);
+        sleep = document.getElementById('sleepQuality').value;
+        areas = Array.from(document.querySelectorAll('#childSymptoms .checkbox-group input:checked')).map(c => c.value);
+      }
+
+      const notes = document.getElementById('symptomNotes').value.trim();
+      const linkedFoodId = document.getElementById('linkedFood').value
+        ? parseInt(document.getElementById('linkedFood').value, 10)
+        : null;
+
+      const entry = {
+        id: nextId++,
+        profile,
+        date,
+        time,
+        severity,
+        areas,
+        symptoms,
+        itch,
+        sleep,
+        notes,
+        linkedFoodId
+      };
+      symptomEntries.push(entry);
+
+      // Clear minimal fields
+      document.getElementById('symptomTime').value = '';
+      document.getElementById('symptomNotes').value = '';
+
+      // Uncheck symptom checkboxes
+      document.querySelectorAll('#adultSymptoms input[type="checkbox"], #childSymptoms input[type="checkbox"]').forEach(c => c.checked = false);
+
+      renderEntries();
+    }
+
+    function refreshLinkedFoodOptions() {
+      const select = document.getElementById('linkedFood');
+      const profile = getSelectedProfile();
+      const date = getSelectedDate();
+
+      const todaysFoods = foodEntries.filter(f => f.date === date && f.profile === profile)
+        .sort((a, b) => (a.time || '').localeCompare(b.time || ''));
+
+      select.innerHTML = '';
+      const defaultOpt = document.createElement('option');
+      defaultOpt.value = '';
+      defaultOpt.textContent = 'No food linked / not sure yet';
+      select.appendChild(defaultOpt);
+
+      todaysFoods.forEach(food => {
+        const opt = document.createElement('option');
+        opt.value = food.id;
+        const timePart = food.time ? food.time : 'Time n/a';
+        opt.textContent = `${timePart} – ${food.mealType} – ${inferFoodLabel(food)}`;
+        select.appendChild(opt);
+      });
+    }
+
+    function renderEntries() {
+      const profile = getSelectedProfile();
+      const date = getSelectedDate();
+
+      const foodContainer = document.getElementById('foodEntriesContainer');
+      const symptomContainer = document.getElementById('symptomEntriesContainer');
+
+      const todaysFoods = foodEntries.filter(f => f.date === date && f.profile === profile)
+        .sort((a, b) => (a.time || '').localeCompare(b.time || ''));
+      const todaysSymptoms = symptomEntries.filter(s => s.date === date && s.profile === profile)
+        .sort((a, b) => (a.time || '').localeCompare(b.time || ''));
+
+      // Render food
+      if (todaysFoods.length === 0) {
+        foodContainer.textContent = 'No food entries yet.';
+      } else {
+        foodContainer.innerHTML = '';
+        todaysFoods.forEach(food => {
+          const div = document.createElement('div');
+          div.className = 'entry';
+          const timePart = food.time || 'Time n/a';
+          const label = inferFoodLabel(food);
+          div.innerHTML = `
+            <div class="entry-title">${timePart} – ${food.mealType} – ${label}</div>
+            <div class="small">Source: ${food.sourceType}</div>
+          `;
+          foodContainer.appendChild(div);
+        });
+      }
+
+      // Render symptoms
+      if (todaysSymptoms.length === 0) {
+        symptomContainer.textContent = 'No symptom entries yet.';
+      } else {
+        symptomContainer.innerHTML = '';
+        todaysSymptoms.forEach(sym => {
+          const div = document.createElement('div');
+          div.className = 'entry';
+          const timePart = sym.time || 'Time n/a';
+          const severityLabel = sym.profile === 'adult'
+            ? `HS severity ${sym.severity}/10`
+            : `Eczema severity ${sym.severity}/10`;
+          let extra = '';
+
+          if (sym.profile === 'child') {
+            extra += ` | Itch ${sym.itch}/10`;
+            extra += ` | Sleep: ${sym.sleep}`;
+          }
+          if (sym.areas && sym.areas.length) {
+            extra += ` | Areas: ${sym.areas.join(', ')}`;
+          }
+
+          let linkedText = 'No food linked';
+          if (sym.linkedFoodId != null) {
+            const food = foodEntries.find(f => f.id === sym.linkedFoodId);
+            if (food) {
+              linkedText = `Linked to: ${food.time || 'Time n/a'} – ${food.mealType} – ${inferFoodLabel(food)}`;
+            }
+          }
+
+          div.innerHTML = `
+            <div class="entry-title">${timePart} – ${severityLabel}${extra}</div>
+            <div class="small">${linkedText}</div>
+          `;
+          symptomContainer.appendChild(div);
+        });
+      }
+    }
+
+    function setUpDateChange() {
+      document.getElementById('date').addEventListener('change', () => {
+        refreshLinkedFoodOptions();
+        renderEntries();
+      });
+    }
+
+    function init() {
+      initDate();
+      setUpRestaurantDishes();
+      setUpFoodSourceToggle();
+      setUpProfileToggle();
+      setUpDateChange();
+
+      document.getElementById('saveFoodBtn').addEventListener('click', saveFoodEntry);
+      document.getElementById('saveSymptomBtn').addEventListener('click', saveSymptomEntry);
+
+      renderEntries();
+      refreshLinkedFoodOptions();
+    }
+
+    document.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>
