@@ -117,6 +117,11 @@
       color: #3730a3;
       font-size: 0.7rem;
       margin-left: 4px;
+      margin-top: 2px;
+    }
+    .quick-view {
+      font-size: 0.85rem;
+      color: #374151;
     }
   </style>
 </head>
@@ -233,8 +238,13 @@
     <!-- Adult HS fields -->
     <div id="adultSymptoms">
       <label for="hsSeverity">HS severity (0–10)</label>
-      <input type="range" id="hsSeverity" min="0" max="10" value="0" oninput="document.getElementById('hsSeverityValue').textContent = this.value">
-      <div class="small">Current: <span id="hsSeverityValue">0</span>/10</div>
+      <input type="range" id="hsSeverity" min="0" max="10" value="0"
+             oninput="document.getElementById('hsSeverityValue').textContent = this.value;
+                      document.getElementById('hsSeverityBand').textContent = severityBandFromValue(this.value);">
+      <div class="small">
+        Current: <span id="hsSeverityValue">0</span>/10
+        (<span id="hsSeverityBand">Low</span>)
+      </div>
 
       <label>Areas affected</label>
       <div class="checkbox-group">
@@ -257,11 +267,17 @@
     <!-- Child eczema fields -->
     <div id="childSymptoms" style="display:none;">
       <label for="eczSeverity">Eczema severity (0–10)</label>
-      <input type="range" id="eczSeverity" min="0" max="10" value="0" oninput="document.getElementById('eczSeverityValue').textContent = this.value">
-      <div class="small">Current: <span id="eczSeverityValue">0</span>/10</div>
+      <input type="range" id="eczSeverity" min="0" max="10" value="0"
+             oninput="document.getElementById('eczSeverityValue').textContent = this.value;
+                      document.getElementById('eczSeverityBand').textContent = severityBandFromValue(this.value);">
+      <div class="small">
+        Current: <span id="eczSeverityValue">0</span>/10
+        (<span id="eczSeverityBand">Low</span>)
+      </div>
 
       <label for="itchSeverity">Itch / scratching (0–10)</label>
-      <input type="range" id="itchSeverity" min="0" max="10" value="0" oninput="document.getElementById('itchSeverityValue').textContent = this.value">
+      <input type="range" id="itchSeverity" min="0" max="10" value="0"
+             oninput="document.getElementById('itchSeverityValue').textContent = this.value;">
       <div class="small">Current: <span id="itchSeverityValue">0</span>/10</div>
 
       <label for="sleepQuality">Sleep last night</label>
@@ -309,12 +325,24 @@
     </div>
   </div>
 
+  <!-- Quick view -->
+  <div class="card">
+    <h2>Quick view (last 14 days)</h2>
+    <div id="quickViewContent" class="quick-view">
+      Not enough data yet to show patterns.
+    </div>
+    <div class="small" style="margin-top:6px;">
+      This is a simple pattern view, not a diagnosis. Always discuss changes with your healthcare team.
+    </div>
+  </div>
+
   <script>
     // Simple in-memory storage
     const foodEntries = [];
     const symptomEntries = [];
     let nextId = 1;
 
+    // Simple restaurant dish lists
     const restaurantDishesByChain = {
       "nandos": [
         "Sunset Burger",
@@ -330,6 +358,20 @@
         "Other dish"
       ]
     };
+
+    // v1 allergen categories we track
+    const ALLERGENS = [
+      "dairy",
+      "egg",
+      "wheat/gluten",
+      "soy",
+      "peanut",
+      "tree_nut",
+      "fish",
+      "shellfish",
+      "sesame",
+      "tomato"
+    ];
 
     function getSelectedProfile() {
       return document.querySelector('input[name="profile"]:checked').value; // 'adult' or 'child'
@@ -403,6 +445,7 @@
         }
         refreshLinkedFoodOptions();
         renderEntries();
+        renderQuickView();
       }
 
       profileRadios.forEach(r => r.addEventListener('change', updateSymptomsView));
@@ -422,6 +465,83 @@
         default:
           return 'Food';
       }
+    }
+
+    // Map numeric severity to band
+    function severityBandFromValue(value) {
+      const v = parseInt(value, 10);
+      if (v <= 3) return 'Low';
+      if (v <= 6) return 'Medium';
+      return 'High';
+    }
+
+    // Simple allergen inference using heuristics & tiny hard-coded maps
+    function inferAllergens(food) {
+      const allergens = new Set();
+
+      function addIfContains(text, substrings, allergenTag) {
+        if (!text) return;
+        const lower = text.toLowerCase();
+        for (const s of substrings) {
+          if (lower.includes(s)) {
+            allergens.add(allergenTag);
+            break;
+          }
+        }
+      }
+
+      // Restaurant-based heuristics
+      if (food.sourceType === 'restaurant') {
+        const chain = (food.chainName || '').toLowerCase();
+        const dish = (food.dishName || '').toLowerCase();
+
+        if (chain.includes("nando")) {
+          // Very rough guesses
+          addIfContains(dish, ["burger", "pitta", "halloumi", "cheese", "mayo"], "dairy");
+          addIfContains(dish, ["burger", "pitta", "wrap", "bread"], "wheat/gluten");
+          addIfContains(dish, ["mayo"], "egg");
+          addIfContains(dish, ["soy"], "soy");
+          addIfContains(dish, ["tomato"], "tomato");
+        } else if (chain.includes("pho")) {
+          addIfContains(dish, ["chicken", "beef", "fish"], "fish");
+          addIfContains(dish, ["tofu", "soy"], "soy");
+          addIfContains(dish, ["noodle"], "wheat/gluten");
+          addIfContains(dish, ["egg"], "egg");
+          addIfContains(dish, ["tomato"], "tomato");
+        } else {
+          // Other chains: basic keyword scan
+          addIfContains(dish, ["milk","cheese","yoghurt","cream","butter"], "dairy");
+          addIfContains(dish, ["egg"], "egg");
+          addIfContains(dish, ["bread","pasta","flour","noodle"], "wheat/gluten");
+          addIfContains(dish, ["soy"], "soy");
+          addIfContains(dish, ["peanut"], "peanut");
+          addIfContains(dish, ["almond","cashew","walnut","hazelnut","pistachio"], "tree_nut");
+          addIfContains(dish, ["fish","salmon","tuna","cod"], "fish");
+          addIfContains(dish, ["prawn","shrimp","crab","lobster"], "shellfish");
+          addIfContains(dish, ["sesame","tahini"], "sesame");
+          addIfContains(dish, ["tomato"], "tomato");
+        }
+      }
+
+      // Supermarket / homemade / other: scan product/ingredients/description
+      const textToScan = [
+        food.product,
+        food.recipeIngredients,
+        food.description
+      ].join(" ");
+
+      addIfContains(textToScan, ["milk","cheese","yoghurt","yogurt","cream","butter"], "dairy");
+      addIfContains(textToScan, ["egg"], "egg");
+      addIfContains(textToScan, ["wheat","flour","bread","pasta","noodle"], "wheat/gluten");
+      addIfContains(textToScan, ["soy","soya"], "soy");
+      addIfContains(textToScan, ["peanut"], "peanut");
+      addIfContains(textToScan, ["almond","cashew","walnut","hazelnut","pistachio","pecan","macadamia"], "tree_nut");
+      addIfContains(textToScan, ["fish","salmon","tuna","cod"], "fish");
+      addIfContains(textToScan, ["prawn","shrimp","crab","lobster","shellfish"], "shellfish");
+      addIfContains(textToScan, ["sesame","tahini"], "sesame");
+      addIfContains(textToScan, ["tomato","ketchup"], "tomato");
+
+      return Array.from(allergens);
     }
 
     function saveFoodEntry() {
@@ -466,6 +586,7 @@
         recipeIngredients,
         description
       };
+      food.allergens = inferAllergens(food);
       foodEntries.push(food);
 
       // Clear minimal fields
@@ -478,6 +599,7 @@
 
       renderEntries();
       refreshLinkedFoodOptions();
+      renderQuickView();
     }
 
     function saveSymptomEntry() {
@@ -525,11 +647,10 @@
       // Clear minimal fields
       document.getElementById('symptomTime').value = '';
       document.getElementById('symptomNotes').value = '';
-
-      // Uncheck symptom checkboxes
       document.querySelectorAll('#adultSymptoms input[type="checkbox"], #childSymptoms input[type="checkbox"]').forEach(c => c.checked = false);
 
       renderEntries();
+      renderQuickView();
     }
 
     function refreshLinkedFoodOptions() {
@@ -577,9 +698,15 @@
           div.className = 'entry';
           const timePart = food.time || 'Time n/a';
           const label = inferFoodLabel(food);
+          let allergensHtml = '';
+          if (food.allergens && food.allergens.length) {
+            allergensHtml = food.allergens.map(a => `<span class="badge">${a}</span>`).join(' ');
+          } else {
+            allergensHtml = `<span class="small">No tracked allergens detected</span>`;
+          }
           div.innerHTML = `
             <div class="entry-title">${timePart} – ${food.mealType} – ${label}</div>
-            <div class="small">Source: ${food.sourceType}</div>
+            <div class="small">Source: ${food.sourceType}${allergensHtml ? ' | Allergens: ' : ''}${allergensHtml}</div>
           `;
           foodContainer.appendChild(div);
         });
@@ -594,9 +721,10 @@
           const div = document.createElement('div');
           div.className = 'entry';
           const timePart = sym.time || 'Time n/a';
+          const band = severityBandFromValue(sym.severity);
           const severityLabel = sym.profile === 'adult'
-            ? `HS severity ${sym.severity}/10`
-            : `Eczema severity ${sym.severity}/10`;
+            ? `HS ${band} (${sym.severity}/10)`
+            : `Eczema ${band} (${sym.severity}/10)`;
           let extra = '';
 
           if (sym.profile === 'child') {
@@ -628,7 +756,116 @@
       document.getElementById('date').addEventListener('change', () => {
         refreshLinkedFoodOptions();
         renderEntries();
+        renderQuickView();
       });
+    }
+
+    // Quick view over last 14 days
+    function renderQuickView() {
+      const profile = getSelectedProfile();
+      const quickDiv = document.getElementById('quickViewContent');
+      const todayStr = getSelectedDate();
+      if (!todayStr) {
+        quickDiv.textContent = 'Select a date to see patterns.';
+        return;
+      }
+
+      const today = new Date(todayStr + 'T00:00:00');
+      const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+      // Build per-day data for last 14 days
+      const dayInfo = {};
+      for (let i = 0; i < 14; i++) {
+        const d = new Date(today.getTime() - i * MS_PER_DAY);
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        const key = `${yyyy}-${mm}-${dd}`;
+        dayInfo[key] = {
+          date: key,
+          allergens: new Set(),
+          maxSeverity: null // numeric
+        };
+      }
+
+      // Aggregate foods
+      foodEntries
+        .filter(f => f.profile === profile && dayInfo[f.date])
+        .forEach(f => {
+          (f.allergens || []).forEach(a => dayInfo[f.date].allergens.add(a));
+        });
+
+      // Aggregate symptoms (max severity per day)
+      symptomEntries
+        .filter(s => s.profile === profile && dayInfo[s.date])
+        .forEach(s => {
+          const info = dayInfo[s.date];
+          if (info.maxSeverity == null || s.severity > info.maxSeverity) {
+            info.maxSeverity = s.severity;
+          }
+        });
+
+      const days = Object.values(dayInfo).sort((a, b) => a.date.localeCompare(b.date));
+      const allergenDayCounts = {};
+      ALLERGENS.forEach(a => allergenDayCounts[a] = 0);
+
+      let mediumHighDays = 0;
+      let currentFlareLength = 0;
+
+      // Walk from oldest to newest to count; then from newest backwards for flare length
+      days.forEach(info => {
+        info.band = info.maxSeverity == null ? 'None' : severityBandFromValue(info.maxSeverity);
+        if (info.band === 'Medium' || info.band === 'High') {
+          mediumHighDays += 1;
+        }
+        info.allergens.forEach(a => {
+          if (allergenDayCounts[a] != null) {
+            allergenDayCounts[a] += 1;
+          }
+        });
+      });
+
+      // Current flare length: from today backwards while band is Medium/High
+      for (let i = days.length - 1; i >= 0; i--) {
+        const info = days[i];
+        if (info.band === 'Medium' || info.band === 'High') {
+          currentFlareLength += 1;
+        } else {
+          break;
+        }
+      }
+
+      const anyLogs = foodEntries.some(f => f.profile === profile && dayInfo[f.date]) ||
+                      symptomEntries.some(s => s.profile === profile && dayInfo[s.date]);
+      if (!anyLogs) {
+        quickDiv.textContent = 'Not enough data in the last 14 days for this profile yet.';
+        return;
+      }
+
+      // Build summary text
+      const allergenLines = Object.entries(allergenDayCounts)
+        .filter(([, count]) => count > 0)
+        .map(([a, count]) => `${a} on ${count} day${count === 1 ? '' : 's'}`);
+
+      let text = '';
+
+      text += `In the last 14 days for this profile:\n`;
+      if (allergenLines.length) {
+        text += `• Logged allergens: ${allergenLines.join(', ')}.\n`;
+      } else {
+        text += `• No tracked allergens detected in logged foods.\n`;
+      }
+
+      text += `• Days with Medium/High symptoms: ${mediumHighDays} of 14.\n`;
+      if (currentFlareLength > 0) {
+        text += `• Current flare length: ${currentFlareLength} day${currentFlareLength === 1 ? '' : 's'} in a row with Medium/High symptoms.\n`;
+      } else {
+        text += `• No ongoing flare (no Medium/High days in the current streak).\n`;
+      }
+
+      text += `\nThese are simple patterns, not proof of cause. Discuss persistent patterns with your clinician before changing diet or treatment.`;
+
+      quickDiv.textContent = text;
     }
 
     function init() {
@@ -643,6 +880,7 @@
 
       renderEntries();
       refreshLinkedFoodOptions();
+      renderQuickView();
     }
 
     document.addEventListener('DOMContentLoaded', init);
