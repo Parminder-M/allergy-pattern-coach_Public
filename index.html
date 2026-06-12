@@ -337,6 +337,43 @@
   </div>
 
   <script>
+    js
+const STORAGE_KEY = 'allergyPatternCoach_v1';
+
+function saveToStorage() {
+  if (!window.localStorage) return;
+  const data = {
+    foodEntries,
+    symptomEntries,
+    nextId
+  };
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  } catch (e) {
+    // If storage fails (e.g. quota), just fail silently for now
+    console.warn('Could not save to localStorage', e);
+  }
+}
+
+function loadFromStorage() {
+  if (!window.localStorage) return;
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    const data = JSON.parse(raw);
+    if (Array.isArray(data.foodEntries)) {
+      data.foodEntries.forEach(f => foodEntries.push(f));
+    }
+    if (Array.isArray(data.symptomEntries)) {
+      data.symptomEntries.forEach(s => symptomEntries.push(s));
+    }
+    if (typeof data.nextId === 'number') {
+      nextId = data.nextId;
+    }
+  } catch (e) {
+    console.warn('Could not load from localStorage', e);
+  }
+}
     // Simple in-memory storage
     const foodEntries = [];
     const symptomEntries = [];
@@ -874,9 +911,34 @@
       setUpFoodSourceToggle();
       setUpProfileToggle();
       setUpDateChange();
+       // Load any existing data from previous sessions
+  loadFromStorage();
+
+  document.getElementById('saveFoodBtn').addEventListener('click', saveFoodEntry);
+  document.getElementById('saveSymptomBtn').addEventListener('click', saveSymptomEntry);
+
+  renderEntries();
+  refreshLinkedFoodOptions();
+  renderQuickView();
+}
 
       document.getElementById('saveFoodBtn').addEventListener('click', saveFoodEntry);
+            foodEntries.push(food);
+
+      // ... existing clear-field lines ...
+
+      renderEntries();
+      refreshLinkedFoodOptions();
+      renderQuickView();
+      saveToStorage();
       document.getElementById('saveSymptomBtn').addEventListener('click', saveSymptomEntry);
+            symptomEntries.push(entry);
+
+      // ... existing clear-field lines ...
+
+      renderEntries();
+      renderQuickView();
+      saveToStorage();
 
       renderEntries();
       refreshLinkedFoodOptions();
